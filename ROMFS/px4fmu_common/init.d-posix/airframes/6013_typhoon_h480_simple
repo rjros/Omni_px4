@@ -70,7 +70,7 @@ param set-default CA_ROTOR6_PX 0.0
 param set-default CA_ROTOR6_PY 0.0
 param set-default CA_ROTOR6_PZ 0.0
 param set-default CA_ROTOR6_KM 0.00 #assuming the moment is very low else 0.05
-param set-default CA_ROTOR6_AX -1.0
+param set-default CA_ROTOR6_AX 1.0
 param set-default CA_ROTOR6_AY 0.0
 param set-default CA_ROTOR6_AZ 0.0
 param set-default CA_ROTOR6_CT 3.25
