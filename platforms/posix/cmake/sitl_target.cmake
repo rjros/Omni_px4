@@ -182,7 +182,7 @@ set(models
 	uuv_hippocampus
 	omnicopter # added additional model for simulation
 	fully_actuated #added additional model for simulation
-	#edf test platform
+	iris_4edf#edf test platform
 )
 
 set(worlds

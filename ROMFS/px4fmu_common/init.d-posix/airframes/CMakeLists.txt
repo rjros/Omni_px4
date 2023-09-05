@@ -83,4 +83,5 @@ px4_add_romfs_files(
 	6014_typhoon_h480_dual
 	6015_typhoon_square
 	10019_omnicopter
+	10021_iris_4edf
 )
