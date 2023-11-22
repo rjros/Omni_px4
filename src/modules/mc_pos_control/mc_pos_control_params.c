@@ -875,12 +875,26 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_ALL, -3.0f);
 // MODE SELECTION
 
 /**
- * Planar attitude mode selection.
+ * Planar flight mode
+ *
+ * Specifies the type of attitude setpoint sent to the attitude controller.
+ * The parameter can be set to a normal attitude setpoint, where the tilt
+ * of the vehicle (roll and pitch) are calculated from the desired thrust
+ * vector. This should be the behavior for the non-omnidirectional vehicles,
+ * such as quadrotors and other multirotors with coplanar rotors.
+ * The "constant zero tilt" mode enforces zero roll and pitch and can only be
+ * used for omnidirectional vehicles. The min-tilt mode enforces zero tilt
+ * up to a maximum set acceleration (thrust) and tilts the vehicle as small
+ * as possible if the thrust vector is larger than the maximum. The "constant
+ * tilt" and "constant roll/pitch" modes enforce a given tilt or roll/pitch
+ * for the vehicle. The estimation modes estimate the optimal tilt or roll/pitch
+ * to counteract with the external force (e.g., wind).
  *
  * @min 0
- * @max 1
- * @value 0 tilted attitude
- * @value 1 planar flight mode
+ * @max 2
+ * @value 3 tilted attitude
+ * @value 1 constant zero tilt
+ * @value 2 fixed attitude
  */
 PARAM_DEFINE_INT32(PLANAR_ATT_MODE, 0);
 
@@ -908,7 +922,7 @@ PARAM_DEFINE_INT32(RC_SIM, 1);
  * @increment 0.1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_PXY_P, 0.4f);
+PARAM_DEFINE_FLOAT(MPC_PXY_P, 1.0f);
 /**
  * Integral gain for horizontal position error
  *
@@ -920,7 +934,7 @@ PARAM_DEFINE_FLOAT(MPC_PXY_P, 0.4f);
  * @increment 0.1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_PXY_I, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_PXY_I, 0.1f);
 /**
  * Derivative gain for horizontal position error
  *
@@ -932,7 +946,7 @@ PARAM_DEFINE_FLOAT(MPC_PXY_I, 0.5f);
  * @increment 0.1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_PXY_D, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_PXY_D, 0.5f);
 
 
 /**

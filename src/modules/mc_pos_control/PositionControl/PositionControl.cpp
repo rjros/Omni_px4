@@ -141,17 +141,18 @@ bool PositionControl::update(const float dt, const int vectoring_att_mode)
 
 	//check value for the switch
 	switch (vectoring_att_mode) {
-	case 1:	{
+	case 3:	{
+		_positionControl();
+		_velocityControl(dt);
+		_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;
+		_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
+
+		}break;//here
+	default:
 		_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;//yaw control can be separated based on 2 matrices
 		_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
 		_planar_positionControl(dt,_yaw_sp);
 		_planar_velocityControl(dt,_yaw_sp);
-		}break;//here
-	default:
-	_positionControl();
-		_velocityControl(dt);
-		_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;
-		_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
 
 		}
 	}

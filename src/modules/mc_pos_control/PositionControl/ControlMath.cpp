@@ -61,18 +61,20 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 	// }
 	//check value for the switch
 	switch (planar_att_mode) {
-	case 1:
+	case 3:
 		// PX4_INFO("Before Thrust Value length and component %f %f ",(double)-thr_sp.length(),(double)att_sp.thrust_body[2]);
-		thrustToZeroTiltAttitude(thr_sp, yaw_sp, att,att_sp);
+			// PX4_INFO("Before  Zero Thrust Value length and component %f %f ",(double)-thr_sp.length(),(double)att_sp.thrust_body[2]);
+		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
+		att_sp.thrust_body[2] = -thr_sp.length();
 
 
 		// PX4_INFO("After Thrust Value length and component %f %f ",(double)-thr_sp.length(),(double)att_sp.thrust_body[2]);
 		break;
 
 	default: //Altitude is calculated from the desired thrust direction
-		// PX4_INFO("Before  Zero Thrust Value length and component %f %f ",(double)-thr_sp.length(),(double)att_sp.thrust_body[2]);
-		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
-		att_sp.thrust_body[2] = -thr_sp.length();
+		thrustToZeroTiltAttitude(thr_sp, yaw_sp, att,att_sp);
+
+
 	}
 
 	// Estimate the optimal tilt angle and direction to counteract the wind
