@@ -10,7 +10,7 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 #In the new firmware by default
-#param set-default SYS_CTRL_ALLOC 1
+param set-default SYS_CTRL_ALLOC 1
 param set-default CA_ROTOR_COUNT 8
 
 
@@ -82,7 +82,7 @@ param set-default FD_FAIL_P 0
 param set-default FD_FAIL_R 0
 
 #Set omni parameters
-param set PLANAR_ATT_MODE 2
+param set PLANAR_ATT_MODE 1
 
 set MIXER skip
 set MIXER_AUX none

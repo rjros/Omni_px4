@@ -878,10 +878,9 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_ALL, -3.0f);
  * Planar attitude mode selection.
  *
  * @min 0
- * @max 2
- * @value 3 tilted attitude
+ * @max 1
+ * @value 0 tilted attitude
  * @value 1 planar flight mode
- * @value 2 min-tilt attitude
  */
 PARAM_DEFINE_INT32(PLANAR_ATT_MODE, 0);
 
@@ -909,7 +908,7 @@ PARAM_DEFINE_INT32(RC_SIM, 1);
  * @increment 0.1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_PXY_P, 0.95f);
+PARAM_DEFINE_FLOAT(MPC_PXY_P, 0.4f);
 /**
  * Integral gain for horizontal position error
  *
@@ -921,7 +920,7 @@ PARAM_DEFINE_FLOAT(MPC_PXY_P, 0.95f);
  * @increment 0.1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_PXY_I, 0.95f);
+PARAM_DEFINE_FLOAT(MPC_PXY_I, 0.5f);
 /**
  * Derivative gain for horizontal position error
  *
@@ -933,7 +932,7 @@ PARAM_DEFINE_FLOAT(MPC_PXY_I, 0.95f);
  * @increment 0.1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_PXY_D, 0.95f);
+PARAM_DEFINE_FLOAT(MPC_PXY_D, 1.0f);
 
 
 /**

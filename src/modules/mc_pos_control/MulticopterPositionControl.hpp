@@ -170,6 +170,15 @@ private:
 		(ParamFloat<px4::params::MPC_THR_HOVER>)    _param_mpc_thr_hover,
 		(ParamBool<px4::params::MPC_USE_HTE>)       _param_mpc_use_hte,
 
+		//Planar controller variables
+		(ParamFloat<px4::params::MPC_PXY_P>) _param_mpc_pxy_pos_p_vel,
+		(ParamFloat<px4::params::MPC_PXY_I>) _param_mpc_pxy_pos_i_vel,
+		(ParamFloat<px4::params::MPC_PXY_D>) _param_mpc_pxy_pos_d_vel,
+		(ParamFloat<px4::params::MPC_PXY_VEL_P_A>) _param_mpc_pxy_vel_p_acc,
+		(ParamFloat<px4::params::MPC_PXY_VEL_I_A>) _param_mpc_pxy_vel_i_acc,
+		(ParamFloat<px4::params::MPC_PXY_VEL_D_A>) _param_mpc_pxy_vel_d_acc,
+		//Planar controller variables
+
 		// Takeoff / Land
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>)   _param_mpc_tko_ramp_t,   /**< time constant for smooth takeoff ramp */
