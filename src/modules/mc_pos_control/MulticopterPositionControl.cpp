@@ -240,21 +240,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
 		_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
 
-		if (abs(_param_omni_att_tilt_angle.get() - _param_tilt_angle) > FLT_EPSILON
-		    || abs(_param_omni_att_tilt_dir.get() - _param_tilt_dir) > FLT_EPSILON) {
-			_param_tilt_angle = _param_omni_att_tilt_angle.get();
-			_param_tilt_dir = _param_omni_att_tilt_dir.get();
-			_tilt_angle = math::radians(_param_tilt_angle);
-			_tilt_dir = math::radians(_param_tilt_dir);
-		}
-
-		if (abs(_param_omni_att_roll.get() - _param_roll_angle) > FLT_EPSILON
-		    || abs(_param_omni_att_pitch.get() - _param_pitch_angle) > FLT_EPSILON) {
-			_param_roll_angle = _param_omni_att_roll.get();
-			_param_pitch_angle = _param_omni_att_pitch.get();
-			_tilt_roll = math::radians(_param_roll_angle);
-			_tilt_pitch = math::radians(_param_pitch_angle);
-		}
 	}
 }
 
@@ -486,7 +471,7 @@ void MulticopterPositionControl::Run()
 			_control.setState(states);
 
 			// Run position control
-			if (_control.update(dt,_param_omni_att_mode.get())) {
+			if (_control.update(dt,_param_planar_att_mode.get())) {
 				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_now);
 
 			} else {
@@ -508,7 +493,7 @@ void MulticopterPositionControl::Run()
 
 				_control.setInputSetpoint(failsafe_setpoint);
 				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
-				_control.update(dt,_param_omni_att_mode.get());
+				_control.update(dt,_param_planar_att_mode.get());
 			}
 
 			// Publish internal position control setpoints
@@ -523,15 +508,22 @@ void MulticopterPositionControl::Run()
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			// _control.getAttitudeSetpoint(attitude_setpoint);
 			attitude_setpoint.timestamp = hrt_absolute_time();
-			omni_attitude_status_s omni_status{};
-			omni_status.timestamp = time_stamp_now;
-			// _control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(),
-			// 			     _tilt_angle, _tilt_dir, _tilt_roll, _tilt_pitch, _param_omni_att_rate.get(), _param_omni_proj_axes.get(),
-			// 			     attitude_setpoint, omni_status);
+			planar_attitude_status_s planar_status{};
+			planar_status.timestamp = time_stamp_now;
+			_control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_planar_att_mode.get(),
+						     attitude_setpoint, planar_status);
 
-			_control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(),
-						     _tilt_angle, _tilt_dir, _tilt_roll, _tilt_pitch, _param_omni_att_rate.get(), _param_omni_proj_axes.get(),
-						     attitude_setpoint, omni_status);
+
+			if (_param_rc_sim_mode.get()==1)
+			{
+				param_t planar_param = param_handle(px4::params::PLANAR_ATT_MODE);
+				manual_control_switches_sub.update(&switches);
+				int32_t att_mode= switches.planar_mode_switch;
+				param_set(planar_param,&att_mode);
+				//Thrust vectoring status for tilting and not tilting mode
+				planar_status.att_mode=switches.planar_mode_switch;
+
+			}
 
 			///////////////////////////////////////////////////////////
 			//Add condition for selecting between rc or saved condition
@@ -542,11 +534,11 @@ void MulticopterPositionControl::Run()
 			// param_set(param,&value);
 			///////////////////////////////////////////////////////////
 			//Add condition for selecting between rc or saved condition
-			omni_status.att_mode = _param_omni_att_mode.get();
-			omni_status.att_mode=switches.omni_switch;
+			planar_status.att_mode = _param_planar_att_mode.get();
 
 
-			_omni_attitude_status_pub.publish(omni_status);
+
+			_planar_attitude_status_pub.publish(planar_status);
 
 			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 

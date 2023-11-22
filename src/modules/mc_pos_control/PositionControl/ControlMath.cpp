@@ -37,6 +37,8 @@
 
 #include "ControlMath.hpp"
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/module_params.h>
+
 #include <float.h>
 #include <mathlib/mathlib.h>
 
@@ -44,28 +46,37 @@ using namespace matrix;
 
 namespace ControlMath
 {
-void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att, const int omni_att_mode,
-		      const float omni_dfc_max_thrust, float &omni_att_tilt_angle, float &omni_att_tilt_dir,
-		      float &omni_att_roll, float &omni_att_pitch, const float omni_att_rate, int omni_proj_axes,
-		      vehicle_attitude_setpoint_s &att_sp, omni_attitude_status_s &omni_status)
+// void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
+// {
+// 	bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
+// 	att_sp.thrust_body[2] = -thr_sp.length();
+// }
+
+void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att, const int planar_att_mode,
+		      vehicle_attitude_setpoint_s &att_sp, planar_attitude_status_s &planar_status)
 {
 	// Print an error if the omni_att_mode parameter is out of range
-	if (omni_att_mode > 6 || omni_att_mode < 0) {
-		PX4_ERR("OMNI_ATT_MODE parameter set to unknown value!");
+	if (planar_att_mode > 6 || planar_att_mode < 0) {
+		// PX4_ERR("OMNI_ATT_MODE parameter set to unknown value!");
 	}
 	//check value for the switch
-	switch (omni_att_mode) {
+	switch (planar_att_mode) {
 	case 3:
+		// PX4_INFO("Before Thrust Value length and component %f %f ",(double)-thr_sp.length(),(double)att_sp.thrust_body[2]);
 		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
 		att_sp.thrust_body[2] = -thr_sp.length();
+		// PX4_INFO("After Thrust Value length and component %f %f ",(double)-thr_sp.length(),(double)att_sp.thrust_body[2]);
 		break;
 
 	default: //Altitude is calculated from the desired thrust direction
-		thrustToZeroTiltAttitude(thr_sp, yaw_sp, att, omni_proj_axes, att_sp);
+		// PX4_INFO("Before  Zero Thrust Value length and component %f %f ",(double)-thr_sp.length(),(double)att_sp.thrust_body[2]);
+		thrustToZeroTiltAttitude(thr_sp, yaw_sp, att,att_sp);
 	}
 
 	// Estimate the optimal tilt angle and direction to counteract the wind
 
+
+	//
 	// Calculate the setpoint z axis
 	Vector3f cmd_z;
 	matrix::Dcmf R_cmd = matrix::Quatf(att_sp.q_d);
@@ -74,11 +85,7 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 		cmd_z(i) = R_cmd(i, 2);
 	}
 
-	omni_status.tilt_angle_est = asinf(Vector2f(cmd_z(0), cmd_z(1)).norm() / cmd_z.norm());
-	;
-	omni_status.tilt_direction_est = wrap_2pi(atan2f(-cmd_z(1), -cmd_z(0)));
-	omni_status.tilt_roll_est = att_sp.roll_body;
-	omni_status.tilt_pitch_est = att_sp.pitch_body;
+
 
 	// Calculate the current z axis
 	Vector3f curr_z;
@@ -88,18 +95,119 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 		curr_z(i) = R_body(i, 2);
 	}
 
-	// Calculate the tilt angle and direction
-	float current_tilt_angle = asinf(Vector2f(curr_z(0), curr_z(1)).norm() / curr_z.norm());
-	float current_tilt_dir = wrap_2pi(atan2f(-curr_z(1), -curr_z(0)));
+	// // Calculate the tilt angle and direction
+	// float current_tilt_angle = asinf(Vector2f(curr_z(0), curr_z(1)).norm() / curr_z.norm());
+	// float current_tilt_dir = wrap_2pi(atan2f(-curr_z(1), -curr_z(0)));
 
-	omni_status.tilt_angle_meas = current_tilt_angle;
-	omni_status.tilt_direction_meas = current_tilt_dir;
+	// planar_status.tilt_angle_meas = current_tilt_angle;
+	// planar_status.tilt_direction_meas = current_tilt_dir;
 
 }
 
-void thrustToZeroTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att, int omni_proj_axes,
+void thrustTofixedPitchAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
 			      vehicle_attitude_setpoint_s &att_sp)
 {
+	//refers to the forward tilt, and used in the MC and Thrust Vectoring model
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//TEST Fixed Pitch Angle//
+	// zero vector, no direction, set safe level value
+	//The angles in the rotation could be use select the different modes
+	matrix::Dcmf _rotation,_rotation2;
+	_rotation = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, -yaw_sp}};
+	_rotation2 = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, yaw_sp}};
+	Vector3f body_x={0.0f,0.0f,0.0f};
+	//check the magnitude of the horizontal vector in the body frame
+	Vector3f thrust_sp_xy=_rotation * Vector3f{thr_sp(0),thr_sp(1),thr_sp(2)};
+	thrust_sp_xy(0)=thrust_sp_xy(0)*1.10f;
+	//PX4_INFO("Thrust in the setpoint %f %f %f ",(double)thr_sp(0),(double)thr_sp(1),(double)thr_sp(2));
+	thrust_sp_xy=_rotation2*Vector3f{thrust_sp_xy(0),thrust_sp_xy(1),thrust_sp_xy(2)};
+	//Increase the x axis by a X factor
+	// thrust_sp_xy.normalize();
+	//PX4_INFO("Thrust by factor %f %f %f ",(double)thrust_sp_xy(0),(double)thrust_sp_xy(1),(double)thrust_sp_xy(2));
+	//PX4_INFO("Thrust in body frame %f %f %f",(double)thrust_rotated(0),(double)thrust_rotated(1),(double)thrust_rotated(2));
+
+	// Vector3f body_z=-thr_sp;// thrust vector that comes
+	Vector3f body_z=-thrust_sp_xy;// thrust vector modified
+
+
+	//check thrust vector
+	Vector3f thrust_rotated = _rotation * matrix::Vector3f{(float)-body_z(0), (float)-body_z(1), (float)-body_z(2)};
+	// PX4_INFO("Thrust in body frame %f %f %f",(double)thrust_rotated(0),(double)thrust_rotated(1),(double)thrust_rotated(2));
+
+	if (thrust_rotated(0)>-0.001f) {
+	body_z=_rotation2*matrix::Vector3f{0.f, (float)-thrust_rotated(1),(float)-thrust_rotated(2)};
+	body_x = Vector3f(cos(yaw_sp), sin(yaw_sp), 0.0f);
+	body_z.normalize();
+
+	}
+
+	else
+	{
+		body_z.normalize();
+		if (body_z.norm_squared() < FLT_EPSILON) {
+			body_z(2) = 1.f;
+		}
+		const Vector3f y_C{-sinf(yaw_sp), cosf(yaw_sp), 0.f};
+		// desired body_x axis, orthogonal to body_z
+		body_x = y_C % body_z;
+
+	}
+
+	// keep nose to front while inverted upside down
+	if (body_z(2) < 0.0f) {
+		body_x = -body_x;
+	}
+
+	// // vector of desired yaw direction in XY plane, rotated by PI/2
+	// Vector3f body_x = Vector3f(cos(yaw_sp), sin(yaw_sp), 0.0f);
+	body_x.normalize();
+
+	if (fabsf(body_z(2)) < 0.000001f) {
+		// desired thrust is in XY plane, set X downside to construct correct matrix,
+		// but yaw component will not be used actually
+		body_x.zero();
+		body_x(2) = 1.f;
+	}
+
+	// // desired body_y axis
+	Vector3f body_y = body_z % body_x;
+	// //front case
+
+	Dcmf R_sp;
+
+
+	// fill rotation matrix
+	for (int i = 0; i < 3; i++) {
+		R_sp(i, 0) = body_x(i);
+		R_sp(i, 1) = body_y(i);
+		R_sp(i, 2) = body_z(i);
+	}
+
+	// copy quaternion setpoint to attitude setpoint topic
+	const Quatf q_sp{R_sp};
+	q_sp.copyTo(att_sp.q_d);
+
+	// calculate euler angles, for logging only, must not be used for control
+	const Eulerf euler{R_sp};
+	att_sp.roll_body = euler.phi();
+	att_sp.pitch_body = euler.theta();
+	att_sp.yaw_body = euler.psi();
+
+
+	att_sp.thrust_body[0] = thrust_sp_xy.dot(body_x);
+	att_sp.thrust_body[1] = thrust_sp_xy.dot(body_y);
+	att_sp.thrust_body[2] = thrust_sp_xy.dot(body_z);
+
+	PX4_INFO("New Thrust Components %f %f %f",(double)att_sp.thrust_body[0],(double)att_sp.thrust_body[1],(double)att_sp.thrust_body[2]);
+
+
+}
+
+void thrustToZeroTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
+			      vehicle_attitude_setpoint_s &att_sp)
+	{
+
+	//Ignores the commannd and relies on the acceleration or addition based
 	// set Z axis to upward direction
 	Vector3f body_z = Vector3f(0.f, 0.f, 1.f);
 
@@ -108,6 +216,7 @@ void thrustToZeroTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const 
 	Vector3f body_y = Vector3f(-sinf(yaw_sp), cosf(yaw_sp), 0.0f);
 
 	Dcmf R_sp;
+
 
 	// fill rotation matrix
 	for (int i = 0; i < 3; i++) {
@@ -121,28 +230,25 @@ void thrustToZeroTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const 
 	q_sp.copyTo(att_sp.q_d);
 	att_sp.q_d_valid = true;
 
+
+
 	// set the euler angles, for logging only, must not be used for control
 	att_sp.roll_body = 0;
 	att_sp.pitch_body = 0;
 	att_sp.yaw_body = yaw_sp;
 
-	//If used it breaks
-	// if (omni_proj_axes==1){// if thrust is projected on the current attitude
-	// 	matrix::Dcmf R_body=att;
 
-	// 	for (int i=0; i<3; i++) {
-	// 		body_x(i)=R_body(i,0);
-	// 		body_y(i)=R_body(i,1);
-	// 		body_z(i)=R_body(i,2);
-	// 	}
-	// }
-
-	att_sp.thrust_body[0] = thr_sp.dot(body_x);
+	att_sp.thrust_body[0] = thr_sp.dot(body_x);// values tend to be very small
 	att_sp.thrust_body[1] = thr_sp.dot(body_y);
 	att_sp.thrust_body[2] = thr_sp.dot(body_z);
 
+	// PX4_INFO("New Thrust Components %f %f %f",(double)att_sp.thrust_body[0],(double)att_sp.thrust_body[1],(double)att_sp.thrust_body[2]);
 
-}
+
+	// PX4_INFO("attitude x, y ,z %f %f %f",(double)att_sp.roll_body,(double)att_sp.pitch_body,(double)att_sp.yaw_body);
+	}
+
+//void planar motion (direction)
 
 void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_angle)
 {
@@ -163,12 +269,32 @@ void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_
 
 void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
 {
-	// zero vector, no direction, set safe level value
+
+// zero vector, no direction, set safe level value
+	// PX4_INFO("Tilting Body_z %f %f %f",(double)-body_z(0),(double)-body_z(1),(double)-body_z(2));
+	matrix::Dcmf _rotation; //_rotation2;
+	_rotation = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, -yaw_sp}};//rotation to the body frame
+	// _rotation2 = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, yaw_sp}};
+	//check thrust vector
+	// Vector3f thrust_rotated = _rotation * matrix::Vector3f{(float)-body_z(0), (float)-body_z(1), 0};
+	// PX4_INFO("Thrust in body z  %f %f %f",(double)body_z(0),(double)body_z(1),(double)body_z(2));
+	// PX4_INFO("Thrust in body frame 0 deg %f %f %f",(double)thrust_rotated(0),(double)thrust_rotated(1),(double)thrust_rotated(2));
+
+	// Vector3f thrust_fixed=_rotation2*matrix::Vector3f{0.0f, (float)thrust_rotated(1),(float)thrust_rotated(2)};
+	// thrust_fixed.normalize();
+
+	// PX4_INFO("Thrust TILTED BACK %f %f %f",(double)thrust_fixed(0),(double)thrust_fixed(1),(double)thrust_fixed(2));
+
+
 	if (body_z.norm_squared() < FLT_EPSILON) {
 		body_z(2) = 1.f;
 	}
 
 	body_z.normalize();
+
+
+	// PX4_INFO("Thrust in body frame %f %f %f",(double)body_z(0),(double)body_z(1),(double)body_z(2));
+
 
 	// vector of desired yaw direction in XY plane, rotated by PI/2
 	const Vector3f y_C{-sinf(yaw_sp), cosf(yaw_sp), 0.f};
@@ -189,6 +315,7 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 	}
 
 	body_x.normalize();
+
 
 	// desired body_y axis
 	const Vector3f body_y = body_z % body_x;
@@ -212,6 +339,9 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 	att_sp.roll_body = euler.phi();
 	att_sp.pitch_body = euler.theta();
 	att_sp.yaw_body = euler.psi();
+	// PX4_INFO("Thrust %f %f %f",(double)thr,(double)att_sp.thrust_body[1],(double)att_sp.thrust_body[2]);
+
+
 }
 
 Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)
@@ -296,7 +426,7 @@ bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r,
 		// we have triangle CDX with known CD and CX = R, find DX
 		float dx_len = sqrtf(sphere_r * sphere_r - cd_len * cd_len);
 
-		if ((sphere_c - line_b) * ab_norm > 0.0f) {
+		if ((sphere_c - line_b) * ab_norm > 0.f) {
 			// target waypoint is already behind us
 			res = line_b;
 
@@ -313,12 +443,12 @@ bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r,
 		res = d; // go directly to line
 
 		// previous waypoint is still in front of us
-		if ((sphere_c - line_a) * ab_norm < 0.0f) {
+		if ((sphere_c - line_a) * ab_norm < 0.f) {
 			res = line_a;
 		}
 
 		// target waypoint is already behind us
-		if ((sphere_c - line_b) * ab_norm > 0.0f) {
+		if ((sphere_c - line_b) * ab_norm > 0.f) {
 			res = line_b;
 		}
 

@@ -27,7 +27,7 @@ uint8 FUNCTION_FLTBTN_SLOT_3 = 23
 uint8 FUNCTION_FLTBTN_SLOT_4 = 24
 uint8 FUNCTION_FLTBTN_SLOT_5 = 25
 uint8 FUNCTION_FLTBTN_SLOT_6 = 26
-uint8 FUNCTION_OMNI_MODE     = 27                              # Tilt mode and Zero tilt mode
+uint8 FUNCTION_PLANAR_MODE  = 27                              # Tilt mode and Zero tilt mode
 
 uint8 FUNCTION_FLTBTN_SLOT_COUNT = 6
 

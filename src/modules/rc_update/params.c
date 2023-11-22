@@ -1500,7 +1500,7 @@ PARAM_DEFINE_INT32(RC_MAP_ARM_SW, 0);
  * @value 17 Channel 17
  * @value 18 Channel 18
  */
-PARAM_DEFINE_INT32(RC_OMNI_MODE_SW, 0);
+PARAM_DEFINE_INT32(RC_PLANAR_SW, 0);
 
 
 /**
@@ -1517,7 +1517,7 @@ PARAM_DEFINE_INT32(RC_OMNI_MODE_SW, 0);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_OMNI_TH, 0.75f);
+PARAM_DEFINE_FLOAT(RC_PLANAR_TH, 0.75f);
 
 /**
  * Flaps channel

@@ -42,9 +42,9 @@
 #include <lib/mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-//#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/omni_attitude_status.h>
+//Thrust Vectoring Parameters
+#include <uORB/topics/planar_attitude_status.h>
 
 
 struct PositionControlStates {
@@ -87,6 +87,21 @@ public:
 	 */
 	void setPositionGains(const matrix::Vector3f &P) { _gain_pos_p = P; }
 
+
+	// /**
+	//  * Set the planar position control gains
+	//  * @param P 3D vector of proportional gains for x,y,z axis
+	//  */
+	// void setPlanarPositionGains(const matrix::Vector3f &P) { _gain_planar_pos_p = P; }
+
+	/**
+	 * Set the velocity control gains
+	 * @param P 3D vector of proportional gains for x,y,z axis
+	 * @param I 3D vector of integral gains
+	 * @param D 3D vector of derivative gains
+	 */
+	void setPlanarPositionGains(const matrix::Vector3f &P, const matrix::Vector3f &I, const matrix::Vector3f &D);
+
 	/**
 	 * Set the velocity control gains
 	 * @param P 3D vector of proportional gains for x,y,z axis
@@ -94,6 +109,13 @@ public:
 	 * @param D 3D vector of derivative gains
 	 */
 	void setVelocityGains(const matrix::Vector3f &P, const matrix::Vector3f &I, const matrix::Vector3f &D);
+	/**
+	 * Set the velocity control gains
+	 * @param P 3D vector of proportional gains for x,y,z axis
+	 * @param I 3D vector of integral gains
+	 * @param D 3D vector of derivative gains
+	 */
+	void setPlanarVelocityGains(const matrix::Vector3f &P, const matrix::Vector3f &I, const matrix::Vector3f &D);
 
 	/**
 	 * Set the maximum velocity to execute with feed forward and position control
@@ -110,6 +132,16 @@ public:
 	 */
 	void setThrustLimits(const float min, const float max);
 
+	//Planar Parameters
+	/**
+	 * Set the minimum and maximum collective normalized thrust [0,1] that can be output by the controller
+	 * @param min minimum thrust e.g. 0.1 or 0
+	 * @param max maximum thrust e.g. 0.9 or 1
+	 */
+	void setPlanarThrustLimits(const float min, const float max);
+	//Planar Parameters
+
+
 	/**
 	 * Set margin that is kept for horizontal control when prioritizing vertical thrust
 	 * @param margin of normalized thrust that is kept for horizontal control e.g. 0.3
@@ -124,9 +156,9 @@ public:
 
 	/**
 	 * Set the normalized hover thrust
-	 * @param thrust [0.1, 0.9] with which the vehicle hovers not acelerating down or up with level orientation
+	 * @param hover_thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 	 */
-	void setHoverThrust(const float hover_thrust) { _hover_thrust = math::constrain(hover_thrust, 0.1f, 0.9f); }
+	void setHoverThrust(const float hover_thrust) { _hover_thrust = math::constrain(hover_thrust, HOVER_THRUST_MIN, HOVER_THRUST_MAX); }
 
 	/**
 	 * Update the hover thrust without immediately affecting the output
@@ -157,7 +189,7 @@ public:
 	 * @param dt time in seconds since last iteration
 	 * @return true if update succeeded and output setpoint is executable, false if not
 	 */
-	bool update(const float dt,const int omni_att_mode);
+	bool update(const float dt,const int att_mode);
 
 	/**
 	 * Set the integral term in xy to 0.
@@ -173,49 +205,60 @@ public:
 	 */
 	void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const;
 
-	// /**
-	//  * Get the controllers output attitude setpoint
-	//  * This attitude setpoint was generated from the resulting acceleration setpoint after position and velocity control.
-	//  * It needs to be executed by the attitude controller to achieve velocity and position tracking.
-	//  * @param attitude_setpoint reference to struct to fill up
-	//  */
+	/**
+	 * Get the controllers output attitude setpoint
+	 * This attitude setpoint was generated from the resulting acceleration setpoint after position and velocity control.
+	 * It needs to be executed by the attitude controller to achieve velocity and position tracking.
+	 * @param attitude_setpoint reference to struct to fill up
+	 */
 	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
-
-		/**
+	/**
 	 * Get the controllers output attitude setpoint
 	 * This attitude setpoint was generated from the resulting acceleration setpoint after position and velocity control.
 	 * It needs to be executed by the attitude controller to achieve velocity and position tracking.
 	 * @param att current attitude of the robot
-	 * @param omni_att_mode attitude mode for omnidirectional vehicles
-	 * @param omni_dfc_max_thrust maximum direct-force (horizontal) scaled thrust for omnidirectional vehicles
-	 * @param omni_att_tilt_angle the desired tilt for the vehicle in mode=3, is output for mode > 5 (in radians)
-	 * @param omni_att_tilt_dir the direction of the desired tilt with respec to North in mode=3, is output for mode > 5 (in radians)
-	 * @param omni_att_roll the desired roll for the vehicle in mode=4, is output for mode > 5 (in radians)
-	 * @param omni_att_pitch the desired pitch for the vehicle in mode=4, is output for mode=6 (in radians)
-	 * @param omni_att_rate the attitude change rate for mode=6
-	 * @param omni_proj_axes the axes used for thrust projection (0=calculated, 1=current)
+	 * @param vectoring_att_mode attitude mode for thrust vectoring capable vehicles
 	 * @param attitude_setpoint reference to struct to fill up
+	 * @param planar_status thrust vectoring status
 	 */
-	void getAttitudeSetpoint(const matrix::Quatf &att, const int omni_att_mode, const float omni_dfc_max_thrust,
-				 float &omni_att_tilt_angle, float &omni_att_tilt_dir, float &omni_att_roll, float &omni_att_pitch,
-				 const float omni_att_rate, const int omni_proj_axes, vehicle_attitude_setpoint_s &attitude_setpoint,
-				 omni_attitude_status_s &omni_status) const;
+	void getAttitudeSetpoint(const matrix::Quatf &att, const int vectoring_att_mode, vehicle_attitude_setpoint_s &attitude_setpoint,
+					planar_attitude_status_s &planar_status) const;
+
+
 
 
 private:
+	// The range limits of the hover thrust configuration/estimate
+	static constexpr float HOVER_THRUST_MIN = 0.05f;
+	static constexpr float HOVER_THRUST_MAX = 0.9f;
+
 	bool _inputValid();
 
 	void _positionControl(); ///< Position proportional control
-	void _velocityControl(const float dt, const int omni_att_mode); ///< Velocity PID control
+	void _velocityControl(const float dt); ///< Velocity PID control
 	void _accelerationControl(); ///< Acceleration setpoint processing
-	void _omni_accelerationControl();// separates thrust values if omni condition is on
+
+	// For the planar control of the system
+	void _planar_positionControl(const float dt,const float yaw_sp);// planar proportional position control
+	void _planar_velocityControl(const float dt,const float yaw_sp);  //planar velocity control
+	void _planar_accelerationControl(const float yaw_sp);// separates thrust values if omni condition is on
+
 
 	// Gains
 	matrix::Vector3f _gain_pos_p; ///< Position control proportional gain
 	matrix::Vector3f _gain_vel_p; ///< Velocity control proportional gain
 	matrix::Vector3f _gain_vel_i; ///< Velocity control integral gain
 	matrix::Vector3f _gain_vel_d; ///< Velocity control derivative gain
+	//Gains for the planar controller//
+	matrix::Vector3f _gain_planar_pos_p;///< Position control proportional gain
+	matrix::Vector3f _gain_planar_pos_i;///< Position control proportional gain
+	matrix::Vector3f _gain_planar_pos_d;///< Position control proportional gain
+
+
+	matrix::Vector3f _gain_planar_vel_p; ///< Velocity control proportional gain
+	matrix::Vector3f _gain_planar_vel_i; ///< Velocity control integral gain
+	matrix::Vector3f _gain_planar_vel_d; ///< Velocity control derivative gain
 
 	// Limits
 	float _lim_vel_horizontal{}; ///< Horizontal velocity limit with feed forward and position control
@@ -225,12 +268,22 @@ private:
 	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
 	float _lim_thr_xy_margin{}; ///< Margin to keep for horizontal control when saturating prioritized vertical thrust
 	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
+	//Planar thrust limits
+	float _lim_planar_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
+	float _lim_planar_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
+	//Planar thrust limits
 
-	float _hover_thrust{}; ///< Thrust [0.1, 0.9] with which the vehicle hovers not accelerating down or up with level orientation
+
+
+	float _xy_factor{0.5};// Analogous to the hover thrust multiplier
+
+	float _hover_thrust{}; ///< Thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 
 	// States
 	matrix::Vector3f _pos; /**< current position */
 	matrix::Vector3f _vel; /**< current velocity */
+	matrix::Vector3f _pos_int; /**< current velocity */
+
 	matrix::Vector3f _vel_dot; /**< velocity derivative (replacement for acceleration estimate) */
 	matrix::Vector3f _vel_int; /**< integral term of the velocity controller */
 	float _yaw{}; /**< current heading */

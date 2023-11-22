@@ -117,11 +117,11 @@ set(msg_files
 	npfg_status.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
-	omni_attitude_status.msg
 	onboard_computer_status.msg
 	optical_flow.msg
 	orbit_status.msg
 	parameter_update.msg
+	planar_attitude_status.msg
 	ping.msg
 	pps_capture.msg
 	position_controller_landing_status.msg

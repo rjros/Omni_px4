@@ -9,7 +9,8 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-param set-default SYS_CTRL_ALLOC 1
+#In the new firmware by default
+#param set-default SYS_CTRL_ALLOC 1
 param set-default CA_ROTOR_COUNT 8
 
 
@@ -34,7 +35,7 @@ param set-default CA_ROTOR4_KM 0.00
 param set-default CA_ROTOR4_AX 0.0
 param set-default CA_ROTOR4_AY -1.0
 param set-default CA_ROTOR4_AZ 0.0
-param set-default CA_ROTOR4_CT 3.25
+param set-default CA_ROTOR4_CT 1.96
 
 
 param set-default CA_ROTOR5_PX 0.00
@@ -43,7 +44,7 @@ param set-default CA_ROTOR5_KM 0.00
 param set-default CA_ROTOR5_AX 0.0
 param set-default CA_ROTOR5_AY 1.0
 param set-default CA_ROTOR5_AZ 0.0
-param set-default CA_ROTOR5_CT 3.25
+param set-default CA_ROTOR5_CT 1.96
 
 #Front fan, pushes back
 param set-default CA_ROTOR6_PX 0.15
@@ -52,7 +53,7 @@ param set-default CA_ROTOR6_KM 0.00
 param set-default CA_ROTOR6_AX -1.0
 param set-default CA_ROTOR6_AY 0.0
 param set-default CA_ROTOR6_AZ 0.0
-param set-default CA_ROTOR6_CT 3.25
+param set-default CA_ROTOR6_CT 1.96
 
 #Back fan, pushes front
 param set-default CA_ROTOR7_PX -0.15
@@ -61,7 +62,7 @@ param set-default CA_ROTOR7_KM 0.00
 param set-default CA_ROTOR7_AX 1.0
 param set-default CA_ROTOR7_AY 0.0
 param set-default CA_ROTOR7_AZ 0.0
-param set-default CA_ROTOR7_CT 3.25
+param set-default CA_ROTOR7_CT 1.96
 
 
 param set-default PWM_MAIN_FUNC1 101
@@ -81,7 +82,7 @@ param set-default FD_FAIL_P 0
 param set-default FD_FAIL_R 0
 
 #Set omni parameters
-param set OMNI_ATT_MODE 1
+param set PLANAR_ATT_MODE 2
 
 set MIXER skip
 set MIXER_AUX none

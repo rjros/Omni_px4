@@ -105,7 +105,7 @@ param set-default FD_FAIL_P 0
 param set-default FD_FAIL_R 0
 
 #Set omni parameters
-param set OMNI_ATT_MODE 1
+# param set OMNI_ATT_MODE 1
 
 set MIXER skip
 set MIXER_AUX none

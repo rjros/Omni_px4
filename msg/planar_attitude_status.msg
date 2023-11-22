@@ -1,0 +1,7 @@
+uint64 timestamp		# time since system start (microseconds)
+
+float32 att_mode		# attitude modes as defined in Planar Thrust Mode
+
+# estimated optimal pitch angle of the robot in rad
+
+# TOPICS planar_attitude_status

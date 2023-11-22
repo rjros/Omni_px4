@@ -64,7 +64,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/omni_attitude_status.h>
 
 #include <uORB/topics/vehicle_attitude.h>
 
@@ -108,7 +107,7 @@ private:
 	uORB::Publication<vehicle_attitude_setpoint_s>	     _vehicle_attitude_setpoint_pub {ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub {ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
 
-	uORB::Publication<omni_attitude_status_s>	_omni_attitude_status_pub{ORB_ID(omni_attitude_status)}; //omni status
+	uORB::Publication<planar_attitude_status_s>	_planar_attitude_status_pub{ORB_ID(planar_attitude_status)}; //planar flight status
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub {this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
@@ -200,17 +199,15 @@ private:
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
 		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all,
 
-		// Omni-directional vehicle parameters
-		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode,
-		(ParamFloat<px4::params::OMNI_DFC_MAX_THR>) _param_omni_dfc_max_thr,
-		(ParamFloat<px4::params::OMNI_ATT_TLT_ANG>) _param_omni_att_tilt_angle,
-		(ParamFloat<px4::params::OMNI_ATT_TLT_DIR>) _param_omni_att_tilt_dir,
-		(ParamFloat<px4::params::OMNI_ATT_ROLL>) _param_omni_att_roll,
-		(ParamFloat<px4::params::OMNI_ATT_PITCH>) _param_omni_att_pitch,
-		(ParamInt<px4::params::OMNI_PROJ_AXES>) _param_omni_proj_axes,
-		(ParamFloat<px4::params::OMNI_ATT_RATE>) _param_omni_att_rate,
+		//Planar Parameters
+		(ParamFloat<px4::params::MPC_PTH_MIN>)      _param_mpc_planar_thr_min,
+		(ParamFloat<px4::params::MPC_PTH_MAX>)      _param_mpc_planar_thr_max,
+		//Planar Parameters
+		(ParamInt<px4::params::PLANAR_ATT_MODE>) _param_planar_att_mode,
 		//Control mode with RC
-		(ParamInt<px4::params::RC_OMNI_MODE_SW>) _param_omni_mode_sw
+		(ParamInt<px4::params::RC_SIM>) _param_rc_sim_mode,
+		//Control mode with RC
+		(ParamInt<px4::params::RC_PLANAR_SW>) _param_planar_mode_sw
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */

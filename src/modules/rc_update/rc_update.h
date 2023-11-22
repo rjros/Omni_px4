@@ -61,7 +61,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <hysteresis/hysteresis.h>
 //Add the omnivehicle parameters for rc switching
-#include <uORB/topics/omni_attitude_status.h>
 
 
 using namespace time_literals;
@@ -246,8 +245,8 @@ private:
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
 
 		//Omnidirectional parameters
-		(ParamInt<px4::params::RC_OMNI_MODE_SW>) _param_rc_omni_mode_sw,
-		(ParamFloat<px4::params::RC_OMNI_TH>) _param_rc_omni_th,
+		(ParamInt<px4::params::RC_PLANAR_SW>) _param_rc_planar_mode_sw,
+		(ParamFloat<px4::params::RC_PLANAR_TH>) _param_rc_planar_th,
 
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
 	)
