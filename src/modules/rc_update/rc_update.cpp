@@ -35,6 +35,9 @@
  * @file rc_update.cpp
  *
  * @author Beat Kueng <beat-kueng@gmx.net>
+ *
+ * Modifications of the rc inputs for  planar flight
+ * @author Ricardo Rosales Martinez
  */
 
 #include "rc_update.h"
@@ -57,7 +60,10 @@ static bool operator ==(const manual_control_switches_s &a, const manual_control
 		a.gear_switch == b.gear_switch &&
 		a.photo_switch == b.photo_switch &&
 		a.video_switch == b.video_switch&&
+		//// CUSTOM Planar mode switch ////
 		a.planar_mode_switch == b.planar_mode_switch ) ; //planar switch parameter
+		//// CUSTOM END Planar mode switch ////
+
 }
 
 static bool operator !=(const manual_control_switches_s &a, const manual_control_switches_s &b) { return !(a == b); }
@@ -218,8 +224,10 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_GEAR] = _param_rc_map_gear_sw.get() - 1;
-	//planar mode parameters
+
+	// s ////
 	_rc.function[rc_channels_s::FUNCTION_PLANAR_MODE] = _param_rc_planar_mode_sw.get() -1;
+	// CUSTOM END planar mode parameters ////
 
 
 	_rc.function[rc_channels_s::FUNCTION_FLAPS] = _param_rc_map_flaps.get() - 1;
@@ -647,7 +655,10 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.arm_switch        = get_rc_sw2pos_position(rc_channels_s::FUNCTION_ARMSWITCH,  _param_rc_armswitch_th.get());
 	switches.transition_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_TRANSITION, _param_rc_trans_th.get());
 	switches.gear_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_GEAR,       _param_rc_gear_th.get());
+
+	//// CUSTOM planar mode parameters ////
 	switches.planar_mode_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_PLANAR_MODE, _param_rc_planar_th.get());
+	//// CUSTOM END planar mode parameters ////
 
 
 #if defined(ATL_MANTIS_RC_INPUT_HACKS)

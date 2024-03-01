@@ -37,6 +37,9 @@
  * @file rc_update.h
  *
  * @author Beat Kueng <beat-kueng@gmx.net>
+ *
+ * Modifications of the rc inputs for  planar flight
+ * @author Ricardo Rosales Martinez
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -60,7 +63,6 @@
 #include <uORB/topics/rc_parameter_map.h>
 #include <uORB/topics/parameter_update.h>
 #include <hysteresis/hysteresis.h>
-//Add the omnivehicle parameters for rc switching
 
 
 using namespace time_literals;
@@ -244,11 +246,12 @@ private:
 		(ParamFloat<px4::params::RC_GEAR_TH>) _param_rc_gear_th,
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
 
-		//Omnidirectional parameters
+		//// CUSTOM Planar parameters ////
 		(ParamInt<px4::params::RC_PLANAR_SW>) _param_rc_planar_mode_sw,
 		(ParamFloat<px4::params::RC_PLANAR_TH>) _param_rc_planar_th,
-
+		//// CUSTOM END Planar parameters ////
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
+
 	)
 };
 } /* namespace rc_update */
