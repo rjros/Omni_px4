@@ -44,7 +44,7 @@
  *
  * Modifications for planar and tilted attitude flight
  *
- * @author Ricardo Rosales
+ * @author Ricardo Rosales Martinez
  */
 
 
