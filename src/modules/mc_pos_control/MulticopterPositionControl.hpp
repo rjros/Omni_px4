@@ -68,11 +68,12 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
+//// CUSTOM planar flight ////
 #include <uORB/topics/vehicle_attitude.h>
-
 #include <uORB/topics/vehicle_status.h>
-//read values from switches
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
+//// CUSTOM END planar flight ////
 
 
 
@@ -122,12 +123,19 @@ private:
 	uORB::Subscription _vehicle_constraints_sub {ORB_ID(vehicle_constraints)};
 	uORB::Subscription _vehicle_control_mode_sub {ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_land_detected_sub {ORB_ID(vehicle_land_detected)};
-	//read values from the att mode
+
+	//// CUSTOM planar mode parameters ////
 	uORB::Subscription manual_control_switches_sub{ORB_ID(manual_control_switches)};
+	uORB::Subscription manual_control_set_sub{ORB_ID(manual_control_setpoint)};
+
 	manual_control_switches_s switches{};
-
-	// manual_control_switches_sub switches{};
-
+	manual_control_setpoint_s stick_setpoints{};
+	//Stick values from the controller
+	float stick_roll{0};
+	float stick_pitch{0};
+	//Values from setpoints
+	bool planar_flight =false;
+	//// CUSTOM END planar mode parameters ////
 
 	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 
@@ -215,6 +223,8 @@ private:
 		//Planar Parameters
 		(ParamFloat<px4::params::MPC_PTH_MIN>)      _param_mpc_planar_thr_min,
 		(ParamFloat<px4::params::MPC_PTH_MAX>)      _param_mpc_planar_thr_max,
+		(ParamFloat<px4::params::PLANAR_TH>)        _param_planar_threshold,
+
 		//Planar Parameters
 		(ParamInt<px4::params::PLANAR_ATT_MODE>) _param_planar_att_mode,
 		//Control mode with RC

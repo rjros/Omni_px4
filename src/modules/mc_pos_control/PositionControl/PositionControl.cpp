@@ -86,11 +86,13 @@ void PositionControl::setThrustLimits(const float min, const float max)
 	_lim_thr_max = max;
 }
 
-void PositionControl::setPlanarThrustLimits(const float min, const float max)
+void PositionControl::setPlanarThrustLimits(const float min, const float max, const float planar_threshold)
 {
 	// make sure there's always enough thrust vector length to infer the attitude
 	_lim_planar_thr_min = math::max(min, 10e-4f);
 	_lim_planar_thr_max = max;
+	_planar_threshold = planar_threshold;
+
 }
 
 void PositionControl::setHorizontalThrustMargin(const float margin)
@@ -131,30 +133,48 @@ void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &
 	_yawspeed_sp = setpoint.yawspeed;
 }
 
-bool PositionControl::update(const float dt, const int vectoring_att_mode)
+bool PositionControl::update(const float dt, const int vectoring_att_mode,bool planar_flight)
 {
 	bool valid = _inputValid();
 
 	if (valid) {
 
-	if (vectoring_att_mode > 6 || vectoring_att_mode< 0) {
-		PX4_ERR("Vectoring Mode parameter set to unknown value!");
-	}
+	_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;
+	_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
+
+	bool distance_flag=false;
+	float error_xy=sqrt(pow((_pos_sp(0) - _pos(0)),2)+pow((_pos_sp(1) - _pos(1)),2));
+	distance_flag= (error_xy>=_planar_threshold)?true:false;
+	//Distance becomes nan during manual motion
+	bool moving_flag=false;
+	moving_flag=!PX4_ISFINITE(error_xy)?true:false;
+	//Conditions for planar motion
+	//Vectoring mode on or off only
+	planar_flag=(planar_flight||distance_flag||moving_flag)?true:false;
 
 	//check value for the switch
 	switch (vectoring_att_mode) {
-	case 3:	{
-		_positionControl();
-		_velocityControl(dt);
-		_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;
-		_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
-
-		}break;//here
-	default:
-		_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;//yaw control can be separated based on 2 matrices
-		_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
+	case 1:
+		if (planar_flag){
 		_planar_positionControl(dt,_yaw_sp);
 		_planar_velocityControl(dt,_yaw_sp);
+		// PX4_INFO("Planar");
+
+		}
+		else{
+		_positionControl();
+		_velocityControl(dt);
+		// PX4_INFO("tilted");
+
+		}
+		break;//here
+	case 3:
+		_positionControl();
+		_velocityControl(dt);
+		break;//here
+	default:
+		_positionControl();
+		_velocityControl(dt);
 
 		}
 	}
@@ -244,8 +264,7 @@ void PositionControl::_velocityControl(const float dt)
 
 	// limit thrust integral
 	_vel_int(2) = math::min(fabsf(_vel_int(2)), CONSTANTS_ONE_G) * sign(_vel_int(2));
-	// PX4_INFO("Th %f %f %f",(double)_thr_sp(0),(double)_thr_sp(1),(double)_thr_sp(2));
-	// PX4_INFO("Vel %f %f %f",(double)_vel_sp(0),(double)_vel_sp(1),(double)_vel_sp(2));
+
 
 
 

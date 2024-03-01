@@ -44,8 +44,9 @@
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-//Thrust Vectoring Parameters
+//// CUSTOM Planar mode parameters ////
 #include <uORB/topics/planar_attitude_status.h>
+//// CUSTOM END Planar mode parameters ////
 
 
 struct PositionControlStates {
@@ -140,8 +141,10 @@ public:
 	 * Set the minimum and maximum collective normalized thrust [0,1] that can be output by the controller
 	 * @param min minimum thrust e.g. 0.1 or 0
 	 * @param max maximum thrust e.g. 0.9 or 1
+	 * @param planar_threshold Euclidiean distance (xy) to setpoint to change to normal flight
+	 *
 	 */
-	void setPlanarThrustLimits(const float min, const float max);
+	void setPlanarThrustLimits(const float min, const float max, const float planar_threshold);
 	//// CUSTOM END Planar Parameters ////
 
 
@@ -186,13 +189,12 @@ public:
 	/**
 	 * Apply P-position and PID-velocity controller that updates the member
 	 * thrust, yaw- and yawspeed-setpoints.
-	 * @see _thr_sp
-	 * @see _yaw_sp
-	 * @see _yawspeed_sp
 	 * @param dt time in seconds since last iteration
+	 * @param att_mode planar and tilted attitude mode
+	 * @param planar_flight bool for controlling the planar flight during
 	 * @return true if update succeeded and output setpoint is executable, false if not
 	 */
-	bool update(const float dt,const int att_mode);
+	bool update(const float dt,const int att_mode, bool planar_flight);
 
 	/**
 	 * Set the integral term in xy to 0.
@@ -279,6 +281,8 @@ private:
 	//// CUSTOM Gains Planar thrust limits ////
 	float _lim_planar_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
 	float _lim_planar_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
+	float _planar_threshold{0}; // Euclidiean distance (xy) to setpoint to change when close to sp
+
 	//// CUSTOM Gains Planar thrust limits ////
 
 
@@ -303,4 +307,8 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
+
+	//// CUSTOM flags ////
+	bool planar_flag=false;
+	//// CUSTOM END flags ////
 };

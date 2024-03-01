@@ -465,6 +465,13 @@ void MulticopterPositionControl::Run()
 			// Allow ramping from zero thrust on takeoff
 			const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
 
+			//// CUSTOM planar thrust limits ////
+			float minimum_planar_thrust = flying ? _param_mpc_planar_thr_min.get() : 0.f;
+			_control.setPlanarThrustLimits(minimum_planar_thrust, _param_mpc_planar_thr_max.get(),_param_planar_threshold.get());
+
+			//// CUSTOM END planar thrust limits ////
+
+
 			_control.setThrustLimits(minimum_thrust, _param_mpc_thr_max.get());
 
 			_control.setVelocityLimits(
@@ -490,7 +497,7 @@ void MulticopterPositionControl::Run()
 			_control.setState(states);
 
 			// Run position control
-			if (_control.update(dt,_param_planar_att_mode.get())) {
+			if (_control.update(dt,_param_planar_att_mode.get(),planar_flight)) {
 				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_now);
 
 			} else {
@@ -512,8 +519,22 @@ void MulticopterPositionControl::Run()
 
 				_control.setInputSetpoint(failsafe_setpoint);
 				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
-				_control.update(dt,_param_planar_att_mode.get());
+				_control.update(dt,_param_planar_att_mode.get(),planar_flight);
 			}
+
+			//// CUSTOM planaar and tilted flight parameters ////
+			//Check the values of the stick to allow for mode switching tilted stop, and planar motion
+			manual_control_set_sub.copy(&stick_setpoints);
+
+			//Check the values of the stick are larger than threshold
+			stick_roll=abs(stick_setpoints.x);
+			stick_pitch=abs(stick_setpoints.y);
+			planar_flight=(stick_roll>=0.05f || stick_pitch>=0.05f)?true:false;
+
+			//// CUSTOM END planaar and tilted flight parameters ////
+
+
+
 
 			// Publish internal position control setpoints
 			// on top of the input/feed-forward setpoints these containt the PID corrections
