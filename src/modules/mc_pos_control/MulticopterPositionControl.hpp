@@ -32,7 +32,10 @@
  ****************************************************************************/
 
 /**
+ * @file MulticopterPositionControl.hpp
  * Multicopter position controller.
+ * Modifications of the position controller for planar flight
+ * @author Ricardo Rosales Martinez
  */
 
 #pragma once
@@ -170,14 +173,14 @@ private:
 		(ParamFloat<px4::params::MPC_THR_HOVER>)    _param_mpc_thr_hover,
 		(ParamBool<px4::params::MPC_USE_HTE>)       _param_mpc_use_hte,
 
-		//Planar controller variables
+		//// CUSTOM Planar controller variables ////
 		(ParamFloat<px4::params::MPC_PXY_P>) _param_mpc_pxy_pos_p_vel,
 		(ParamFloat<px4::params::MPC_PXY_I>) _param_mpc_pxy_pos_i_vel,
 		(ParamFloat<px4::params::MPC_PXY_D>) _param_mpc_pxy_pos_d_vel,
 		(ParamFloat<px4::params::MPC_PXY_VEL_P_A>) _param_mpc_pxy_vel_p_acc,
 		(ParamFloat<px4::params::MPC_PXY_VEL_I_A>) _param_mpc_pxy_vel_i_acc,
 		(ParamFloat<px4::params::MPC_PXY_VEL_D_A>) _param_mpc_pxy_vel_d_acc,
-		//Planar controller variables
+		//// CUSTOM END Planar controller variables ////
 
 		// Takeoff / Land
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
@@ -208,6 +211,7 @@ private:
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
 		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all,
 
+		//// CUSTOM Planar controller parameters ////
 		//Planar Parameters
 		(ParamFloat<px4::params::MPC_PTH_MIN>)      _param_mpc_planar_thr_min,
 		(ParamFloat<px4::params::MPC_PTH_MAX>)      _param_mpc_planar_thr_max,
@@ -217,6 +221,8 @@ private:
 		(ParamInt<px4::params::RC_SIM>) _param_rc_sim_mode,
 		//Control mode with RC
 		(ParamInt<px4::params::RC_PLANAR_SW>) _param_planar_mode_sw
+		//// CUSTOM END Planar controller parameters ////
+
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */

@@ -30,6 +30,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+/**
+ * @file MulticopterPositionControl.cpp
+ * Multicopter position controller
+ * Modifications of the multicopter position controller for planar flight
+ * @author Ricardo Rosales Martinez
+ */
+
 
 #include "MulticopterPositionControl.hpp"
 
@@ -169,7 +176,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			Vector3f(_param_mpc_xy_vel_d_acc.get(), _param_mpc_xy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
 		_control.setHorizontalThrustMargin(_param_mpc_thr_xy_marg.get());
 
-		//Planar controllers
+		//// CUSTOM Planar controllers ////
 		_control.setPlanarPositionGains(
 			Vector3f(_param_mpc_pxy_pos_p_vel.get(), _param_mpc_pxy_pos_p_vel.get(), _param_mpc_z_p.get()),
 			Vector3f(_param_mpc_pxy_pos_i_vel.get(),_param_mpc_pxy_pos_i_vel.get(), 0.0f),
@@ -179,7 +186,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			Vector3f(_param_mpc_pxy_vel_p_acc.get(), _param_mpc_pxy_vel_p_acc.get(), _param_mpc_z_vel_p_acc.get()),
 			Vector3f(_param_mpc_pxy_vel_i_acc.get(), _param_mpc_pxy_vel_i_acc.get(), _param_mpc_z_vel_i_acc.get()),
 			Vector3f(_param_mpc_pxy_vel_d_acc.get(), _param_mpc_pxy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
-		//Planar controllers
+		//// CUSTOM END Planar controllers ////
 
 		// Check that the design parameters are inside the absolute maximum constraints
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
@@ -520,6 +527,7 @@ void MulticopterPositionControl::Run()
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			// _control.getAttitudeSetpoint(attitude_setpoint);
 			attitude_setpoint.timestamp = hrt_absolute_time();
+			//// CUSTOM planar attitude status ////
 			planar_attitude_status_s planar_status{};
 			planar_status.timestamp = time_stamp_now;
 			_control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_planar_att_mode.get(),
@@ -537,20 +545,9 @@ void MulticopterPositionControl::Run()
 
 			}
 
-			///////////////////////////////////////////////////////////
-			//Add condition for selecting between rc or saved condition
-			//Get omni mode from rc
-			// param_t param = param_handle(px4::params::OMNI_ATT_MODE);
-			// manual_control_switches_sub.update(&switches);
-			// int32_t value= switches.omni_switch;
-			// param_set(param,&value);
-			///////////////////////////////////////////////////////////
-			//Add condition for selecting between rc or saved condition
 			planar_status.att_mode = _param_planar_att_mode.get();
-
-
-
 			_planar_attitude_status_pub.publish(planar_status);
+			//// CUSTOM END planar attitude status ////
 
 			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
