@@ -36,6 +36,8 @@
  *
  * Simple functions for vector manipulation that do not fit into matrix lib.
  * These functions are specific for controls.
+ * Modifications of the control math for planar flight
+ * @author Ricardo Rosales Martinez
  */
 
 #pragma once
@@ -68,13 +70,13 @@ void thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const 
 		      planar_attitude_status_s & planar_status);
 
 /**
- * Converts inertial thrust vector and yaw set-point to a zero-tilt attitude and body thrust vector for an omni-directional multirotor.
+ * Converts inertial thrust vector and yaw set-point to a planar attitude and body thrust vector for vehicles with horizontal thrusters
  * @param thr_sp a 3D vector
  * @param yaw_sp the desired yaw
  * @param att current attitude of the robot
  * @param att_sp attitude setpoint to fill
  */
-void thrustToZeroTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
+void thrustToPlanarAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
 			      vehicle_attitude_setpoint_s &att_sp);
 /**
  * Limits the tilt angle between two unit vectors

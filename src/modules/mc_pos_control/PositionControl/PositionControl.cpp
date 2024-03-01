@@ -33,6 +33,8 @@
 
 /**
  * @file PositionControl.cpp
+ * Modifications of the position controller for planar flight
+ * @author Ricardo Rosales Martinez
  */
 
 #include "PositionControl.hpp"
@@ -53,7 +55,7 @@ void PositionControl::setVelocityGains(const Vector3f &P, const Vector3f &I, con
 	_gain_vel_i = I;
 	_gain_vel_d = D;
 }
-//Planar Gains//
+//// CUSTOM Planar Gains////
 void PositionControl::setPlanarPositionGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
 {
 	//Use values from the users parameters,this depends on number of fans
@@ -68,7 +70,7 @@ void PositionControl::setPlanarVelocityGains(const Vector3f &P, const Vector3f &
 	_gain_planar_vel_i = I;
 	_gain_planar_vel_d = D;
 }
-//Planar Gains End//
+////CUSTOM END Planar Gains End////
 
 void PositionControl::setVelocityLimits(const float vel_horizontal, const float vel_up, const float vel_down)
 {
@@ -182,201 +184,6 @@ void PositionControl::_positionControl()
 
 
 }
-///Planar position control functions //////////////////////////////////////////////////////////////////////////////////////
-// void PositionControl::_planar_positionControl()
-// {
-// 	// P-position controller
-// 	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_planar_pos_p);
-// 	// Position and feed-forward velocity setpoints or position states being NAN results in them not having an influence
-// 	ControlMath::addIfNotNanVector3f(_vel_sp, vel_sp_position);
-// 	// make sure there are no NAN elements for further reference while constraining
-// 	ControlMath::setZeroIfNanVector3f(vel_sp_position);
-
-// 	// Constrain horizontal velocity by prioritizing the velocity component along the
-// 	// the desired position setpoint over the feed-forward term.
-// 	//Should remain as close as possible as the tilting mode, so the velocity limits will reamain
-// 	_vel_sp.xy() = ControlMath::constrainXY(vel_sp_position.xy(), (_vel_sp - vel_sp_position).xy(), _lim_vel_horizontal);
-// 	// Constrain velocity in z-direction.
-// 	_vel_sp(2) = math::constrain(_vel_sp(2), -_lim_vel_up, _lim_vel_down);
-// }
-
-void PositionControl::_planar_positionControl(const float dt, const float yaw_sp)
-{
-	//position error
-	Vector3f pos_error = (_pos_sp - _pos);
-	Vector3f vel_sp_position = pos_error.emult(_gain_planar_pos_p) + _pos_int - _vel.emult(_gain_planar_pos_d);
-	// Vector3f vel_sp_position = pos_error.emult(_gain_planar_pos_p);
-	// vel_sp_position(0)+=_pos_int(0) -_vel(0)*_gain_planar_pos_d(0);
-	// vel_sp_position(1)+=_pos_int(1) - _vel(1)*_gain_planar_pos_d(1);
-
-	// Update integral part of velocity control
-	//separate based on each individual velocity component
-	_pos_int =_pos_int + pos_error.emult(_gain_planar_pos_i) * dt;
-
-	ControlMath::addIfNotNanVector3f(_vel_sp, vel_sp_position);
-	// make sure there are no NAN elements for further reference while constraining
-	// ControlMath::setZeroIfNanVector3f(vel_sp_position);
-
-	// Update integral part of velocity control
-	//separate based on each individual velocity component
-	_pos_int = pos_error.emult(_gain_planar_pos_i) * dt;
-
-	matrix::Dcmf _rotation,_rotation2;
-	_rotation = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, -yaw_sp}};
-	_rotation2 = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, yaw_sp}};
-
-
-	Vector3f vel_sp_xy=_rotation * Vector3f{_vel_sp(0),_vel_sp(1),0};
-	vel_sp_xy(0) = math::constrain(vel_sp_xy(0), -_lim_vel_horizontal, _lim_vel_horizontal);
-	vel_sp_xy(1) = math::constrain(vel_sp_xy(1), -_lim_vel_horizontal, _lim_vel_horizontal);
-	vel_sp_xy=_rotation2*Vector3f{vel_sp_xy(0),vel_sp_xy(1),0};
-	_vel_sp.xy()=vel_sp_xy.xy();
-
-	// PX4_INFO("Pos_error %f %f %f",(double)pos_error(0),(double)pos_error(1),(double)pos_error(2));
-	// PX4_INFO("Vel setpoint differences %f %f ",(double)_vel_sp(0),(double)_pos_int(0));
-
-
-
-	//Should remain as close as possible as the tilting mode, so the velocity limits will reamain
-	// _vel_sp.xy() = ControlMath::constrainXY(vel_sp_position.xy(), (_vel_sp - vel_sp_position).xy(), _lim_vel_horizontal);
-
-
-
-	// _vel_sp(0) = math::constrain(_vel_sp(0),-_lim_vel_horizontal,_lim_vel_horizontal);
-	// _vel_sp(1) = math::constrain(_vel_sp(1),-_lim_vel_horizontal,_lim_vel_horizontal);
-
-
-	// Constrain velocity in z-direction.
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_lim_vel_up, _lim_vel_down);
-}
-
-
-
-
-void PositionControl::_planar_velocityControl(const float dt,const float yaw_sp)
-{
-	// PID velocity control
-	Vector3f vel_error = _vel_sp - _vel;
-	//gains are the same as the ones used in the tilting mode, this should be adjusted by the user
-	//The parametes should be gain_vel_p and gain_vel_d
-	Vector3f acc_sp_velocity = vel_error.emult(_gain_planar_vel_p) + _vel_int - _vel_dot.emult(_gain_planar_vel_d);
-
-	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
-
-	_planar_accelerationControl(yaw_sp);
-	//Vertical acceleration
-	// Integrator anti-windup in vertical direction
-	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.0f) ||
-	(_thr_sp(2) <= -_lim_thr_max && vel_error(2) <= 0.0f)) {
-	vel_error(2) = 0.f;
-	}
-
-	const float thrust_max_squared = math::sq(_lim_thr_max);
-
-	//Vertical thrust
-	const float thrust_z_max_squared = thrust_max_squared;// - math::sq(allocated_horizontal_thrust);
-	// Saturate maximal vertical thrust
-	_thr_sp(2) = math::max(_thr_sp(2), -sqrtf(thrust_z_max_squared));
-
-
-	//////Compare the merit of using an anti windup
-	// // Use tracking Anti-Windup for horizontal direction: during saturation, the integrator is used to unsaturate the output
-	// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
-	// Integrator anti-windup in vertical direction
-
-	//Rotate the thrust
-	matrix::Dcmf _rotation,_rotation2;
-	_rotation = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, -yaw_sp}};
-	_rotation2 = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, yaw_sp}};
-
-	Vector3f thr_sp_xy=_rotation * Vector3f{_thr_sp(0),_thr_sp(1),0};
-	Vector3f vel_xy_error=_rotation * Vector3f{vel_error(0),vel_error(1),0};
-	//separate the thrust for each sign
-
-	if(thr_sp_xy(0)>=0.0f)
-	{
-		if ((thr_sp_xy(0) >= _lim_planar_thr_max && vel_xy_error(0) >= 0.0f) ||
-		(thr_sp_xy(0)<= _lim_planar_thr_min && vel_xy_error(0) <= 0.0f)) {
-		vel_xy_error(0) = 0.f;
-		}
-	}
-
-	else {
-		if ((thr_sp_xy(0) <= -_lim_planar_thr_max && vel_xy_error(0) <= 0.0f) ||
-		(thr_sp_xy(0)>= -_lim_planar_thr_min && vel_xy_error(0) >= 0.0f)) {
-		vel_xy_error(0) = 0.f;
-		}
-
-	}
-
-	if(thr_sp_xy(1)>=0.0f)
-	{
-		if ((thr_sp_xy(1) >= _lim_planar_thr_max && vel_xy_error(1) >= 0.0f) ||
-		(thr_sp_xy(1)<= _lim_planar_thr_min && vel_xy_error(1) <= 0.0f)) {
-		vel_xy_error(1) = 0.f;
-		}
-	}
-
-	else {
-		if ((thr_sp_xy(1) <= -_lim_planar_thr_max && vel_xy_error(1) <= 0.0f) ||
-		(thr_sp_xy(1)>= -_lim_planar_thr_min && vel_xy_error(1) >= 0.0f)) {
-		vel_xy_error(1) = 0.f;
-		}
-
-	}
-
-	thr_sp_xy(0)=thr_sp_xy(0)>=0.0f? math::min(thr_sp_xy(0),_lim_planar_thr_max): math::max(thr_sp_xy(0),-_lim_planar_thr_max);
-	thr_sp_xy(1)=thr_sp_xy(1)>=0.0f? math::min(thr_sp_xy(1),_lim_planar_thr_max): math::max(thr_sp_xy(1),-_lim_planar_thr_max);
-
-	// PX4_INFO("Th %f %f %f",(double)thr_sp_xy(0),(double)thr_sp_xy(1),(double)_thr_sp(2));
-
-	thr_sp_xy=_rotation2*Vector3f{thr_sp_xy(0),thr_sp_xy(1),0};
-	vel_xy_error=_rotation2*Vector3f{vel_xy_error(0),vel_xy_error(1),0};
-	_thr_sp.xy()=thr_sp_xy.xy();
-	vel_error.xy()=vel_xy_error.xy();
-
-
-	// Make sure integral doesn't get NAN
-	ControlMath::setZeroIfNanVector3f(vel_error);
-	// Update integral part of velocity control
-	//separate based on each individual velocity component
-	_vel_int += vel_error.emult(_gain_planar_vel_i) * dt;
-
-
-	// limit thrust integral
-	_vel_int(2) = math::min(fabsf(_vel_int(2)), CONSTANTS_ONE_G) * sign(_vel_int(2));
-	// PX4_INFO("Ve %f %f %f",(double)_vel_sp(0),(double)_vel_sp(1),(double)_vel_sp(2));
-
-
-
-}
-
-//Custom//
-void PositionControl::_planar_accelerationControl(const float yaw_sp)
-{
-
-	//divide by acceleration
-	Vector3f body_z = Vector3f(0, 0, CONSTANTS_ONE_G).normalized();
-	Vector3f thrz;
-	float collective_thrust = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
-
-	collective_thrust /= (Vector3f(0, 0, 1).dot(body_z));
-	collective_thrust = math::min(collective_thrust, -_lim_thr_min);
-	float x_thrust= _acc_sp(0)*(_hover_thrust);// use a different value perhaps to scale XY since the hover value changes
-	float y_thrust= _acc_sp(1)*(_hover_thrust);//similar to the weight of the uav
-	//independent of each other, no need to normalize
-	Vector3f bodyxy= Vector3f(x_thrust, y_thrust, 0.0);// normalized the xy vector
-
-	thrz= body_z * collective_thrust;
-
-	// // Project thrust to planned body attitude
-	_thr_sp(0) = bodyxy(0);
-	_thr_sp(1) = bodyxy(1);
-	_thr_sp(2) =thrz(2);
-	// PX4_INFO("Thrust Components acceleration %f %f %f",(double)_thr_sp(0),(double)_thr_sp(1),(double)_thr_sp(2));
-	//this thrust only depends of the Z axis
-}
-// Planar position control functions //////////////////////////////////////////////////////////////////////////////////////
 
 void PositionControl::_velocityControl(const float dt)
 {
@@ -462,8 +269,158 @@ void PositionControl::_accelerationControl()
 }
 
 
+////CUSTOM Planar position control functions ////
 
-//END//
+void PositionControl::_planar_positionControl(const float dt, const float yaw_sp)
+{
+	//position error
+	Vector3f pos_error = (_pos_sp - _pos);
+	Vector3f vel_sp_position = pos_error.emult(_gain_planar_pos_p) + _pos_int - _vel.emult(_gain_planar_pos_d);
+
+	// Update integral part of velocity control
+	//separate based on each individual velocity component
+	_pos_int =_pos_int + pos_error.emult(_gain_planar_pos_i) * dt;
+
+	ControlMath::addIfNotNanVector3f(_vel_sp, vel_sp_position);
+	// make sure there are no NAN elements for further reference while constraining
+	// ControlMath::setZeroIfNanVector3f(vel_sp_position);
+
+	// Update integral part of velocity control
+	//separate based on each individual velocity component
+	_pos_int = pos_error.emult(_gain_planar_pos_i) * dt;
+
+	matrix::Dcmf _rotation,_rotation2;
+	_rotation = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, -yaw_sp}};
+	_rotation2 = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, yaw_sp}};
+
+
+	Vector3f vel_sp_xy=_rotation * Vector3f{_vel_sp(0),_vel_sp(1),0};
+	vel_sp_xy(0) = math::constrain(vel_sp_xy(0), -_lim_vel_horizontal, _lim_vel_horizontal);
+	vel_sp_xy(1) = math::constrain(vel_sp_xy(1), -_lim_vel_horizontal, _lim_vel_horizontal);
+	vel_sp_xy=_rotation2*Vector3f{vel_sp_xy(0),vel_sp_xy(1),0};
+	_vel_sp.xy()=vel_sp_xy.xy();
+
+	// Constrain velocity in z-direction.
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_lim_vel_up, _lim_vel_down);
+}
+
+
+
+void PositionControl::_planar_velocityControl(const float dt,const float yaw_sp)
+{
+	// PID velocity control
+	Vector3f vel_error = _vel_sp - _vel;
+	//gains are the same as the ones used in the tilting mode, this should be adjusted by the user
+	//The parametes should be gain_vel_p and gain_vel_d
+	Vector3f acc_sp_velocity = vel_error.emult(_gain_planar_vel_p) + _vel_int - _vel_dot.emult(_gain_planar_vel_d);
+
+	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
+
+	_planar_accelerationControl(yaw_sp);
+	//Vertical acceleration
+	// Integrator anti-windup in vertical direction
+	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.0f) ||
+	(_thr_sp(2) <= -_lim_thr_max && vel_error(2) <= 0.0f)) {
+	vel_error(2) = 0.f;
+	}
+
+	const float thrust_max_squared = math::sq(_lim_thr_max);
+
+	//Vertical thrust
+	const float thrust_z_max_squared = thrust_max_squared;// - math::sq(allocated_horizontal_thrust);
+	// Saturate maximal vertical thrust
+	_thr_sp(2) = math::max(_thr_sp(2), -sqrtf(thrust_z_max_squared));
+
+	//Rotate the thrust
+	matrix::Dcmf _rotation,_rotation2;
+	_rotation = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, -yaw_sp}};
+	_rotation2 = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, yaw_sp}};
+
+	Vector3f thr_sp_xy=_rotation * Vector3f{_thr_sp(0),_thr_sp(1),0};
+	Vector3f vel_xy_error=_rotation * Vector3f{vel_error(0),vel_error(1),0};
+	//separate the thrust for each sign
+
+	if(thr_sp_xy(0)>=0.0f)
+	{
+		if ((thr_sp_xy(0) >= _lim_planar_thr_max && vel_xy_error(0) >= 0.0f) ||
+		(thr_sp_xy(0)<= _lim_planar_thr_min && vel_xy_error(0) <= 0.0f)) {
+		vel_xy_error(0) = 0.f;
+		}
+	}
+
+	else {
+		if ((thr_sp_xy(0) <= -_lim_planar_thr_max && vel_xy_error(0) <= 0.0f) ||
+		(thr_sp_xy(0)>= -_lim_planar_thr_min && vel_xy_error(0) >= 0.0f)) {
+		vel_xy_error(0) = 0.f;
+		}
+
+	}
+
+	if(thr_sp_xy(1)>=0.0f)
+	{
+		if ((thr_sp_xy(1) >= _lim_planar_thr_max && vel_xy_error(1) >= 0.0f) ||
+		(thr_sp_xy(1)<= _lim_planar_thr_min && vel_xy_error(1) <= 0.0f)) {
+		vel_xy_error(1) = 0.f;
+		}
+	}
+
+	else {
+		if ((thr_sp_xy(1) <= -_lim_planar_thr_max && vel_xy_error(1) <= 0.0f) ||
+		(thr_sp_xy(1)>= -_lim_planar_thr_min && vel_xy_error(1) >= 0.0f)) {
+		vel_xy_error(1) = 0.f;
+		}
+
+	}
+
+	thr_sp_xy(0)=thr_sp_xy(0)>=0.0f? math::min(thr_sp_xy(0),_lim_planar_thr_max): math::max(thr_sp_xy(0),-_lim_planar_thr_max);
+	thr_sp_xy(1)=thr_sp_xy(1)>=0.0f? math::min(thr_sp_xy(1),_lim_planar_thr_max): math::max(thr_sp_xy(1),-_lim_planar_thr_max);
+
+
+	thr_sp_xy=_rotation2*Vector3f{thr_sp_xy(0),thr_sp_xy(1),0};
+	vel_xy_error=_rotation2*Vector3f{vel_xy_error(0),vel_xy_error(1),0};
+	_thr_sp.xy()=thr_sp_xy.xy();
+	vel_error.xy()=vel_xy_error.xy();
+
+
+	// Make sure integral doesn't get NAN
+	ControlMath::setZeroIfNanVector3f(vel_error);
+	// Update integral part of velocity control
+	//separate based on each individual velocity component
+	_vel_int += vel_error.emult(_gain_planar_vel_i) * dt;
+
+
+	// limit thrust integral
+	_vel_int(2) = math::min(fabsf(_vel_int(2)), CONSTANTS_ONE_G) * sign(_vel_int(2));
+
+
+
+}
+
+void PositionControl::_planar_accelerationControl(const float yaw_sp)
+{
+
+	//divide by acceleration
+	Vector3f body_z = Vector3f(0, 0, CONSTANTS_ONE_G).normalized();
+	Vector3f thrz;
+	float collective_thrust = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
+
+	collective_thrust /= (Vector3f(0, 0, 1).dot(body_z));
+	collective_thrust = math::min(collective_thrust, -_lim_thr_min);
+	float x_thrust= _acc_sp(0)*(_hover_thrust);// use a different value perhaps to scale XY since the hover value changes
+	float y_thrust= _acc_sp(1)*(_hover_thrust);//similar to the weight of the uav
+
+	//independent of each other, no need to normalize
+	Vector3f bodyxy= Vector3f(x_thrust, y_thrust, 0.0);// normalized the xy vector
+
+	thrz= body_z * collective_thrust;
+
+	_thr_sp(0) = bodyxy(0);
+	_thr_sp(1) = bodyxy(1);
+	_thr_sp(2) =thrz(2);
+
+}
+
+//// CUSTOM END Planar position control functions ////
 
 bool PositionControl::_inputValid()
 {
@@ -507,11 +464,6 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 	_thr_sp.copyTo(local_position_setpoint.thrust);
 }
 
-// void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
-// {
-// 	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
-// 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
-// }
 
 void PositionControl::getAttitudeSetpoint(const matrix::Quatf &att, const int vectoring_att_mode,
 					vehicle_attitude_setpoint_s &attitude_setpoint, planar_attitude_status_s &planar_status)

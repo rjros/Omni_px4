@@ -33,8 +33,9 @@
 
 /**
  * @file PositionControl.hpp
- *
  * A cascaded position controller for position/velocity control only.
+ * Modifications of the position controller for planar flight
+ * @author Ricardo Rosales Martinez
  */
 
 #pragma once
@@ -132,14 +133,16 @@ public:
 	 */
 	void setThrustLimits(const float min, const float max);
 
-	//Planar Parameters
+
+
+	//// CUSTOM Planar Parameters ////
 	/**
 	 * Set the minimum and maximum collective normalized thrust [0,1] that can be output by the controller
 	 * @param min minimum thrust e.g. 0.1 or 0
 	 * @param max maximum thrust e.g. 0.9 or 1
 	 */
 	void setPlanarThrustLimits(const float min, const float max);
-	//Planar Parameters
+	//// CUSTOM END Planar Parameters ////
 
 
 	/**
@@ -239,10 +242,12 @@ private:
 	void _velocityControl(const float dt); ///< Velocity PID control
 	void _accelerationControl(); ///< Acceleration setpoint processing
 
+	//// CUSTOM Planar controller////
 	// For the planar control of the system
 	void _planar_positionControl(const float dt,const float yaw_sp);// planar proportional position control
 	void _planar_velocityControl(const float dt,const float yaw_sp);  //planar velocity control
 	void _planar_accelerationControl(const float yaw_sp);// separates thrust values if omni condition is on
+	//// CUSTOM END Planar controller////
 
 
 	// Gains
@@ -250,7 +255,8 @@ private:
 	matrix::Vector3f _gain_vel_p; ///< Velocity control proportional gain
 	matrix::Vector3f _gain_vel_i; ///< Velocity control integral gain
 	matrix::Vector3f _gain_vel_d; ///< Velocity control derivative gain
-	//Gains for the planar controller//
+
+	//// CUSTOM Gains for the planar controller ////
 	matrix::Vector3f _gain_planar_pos_p;///< Position control proportional gain
 	matrix::Vector3f _gain_planar_pos_i;///< Position control proportional gain
 	matrix::Vector3f _gain_planar_pos_d;///< Position control proportional gain
@@ -259,6 +265,7 @@ private:
 	matrix::Vector3f _gain_planar_vel_p; ///< Velocity control proportional gain
 	matrix::Vector3f _gain_planar_vel_i; ///< Velocity control integral gain
 	matrix::Vector3f _gain_planar_vel_d; ///< Velocity control derivative gain
+	//// CUSTOM Gains for the planar controller ////
 
 	// Limits
 	float _lim_vel_horizontal{}; ///< Horizontal velocity limit with feed forward and position control
@@ -268,14 +275,15 @@ private:
 	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
 	float _lim_thr_xy_margin{}; ///< Margin to keep for horizontal control when saturating prioritized vertical thrust
 	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
-	//Planar thrust limits
+
+	//// CUSTOM Gains Planar thrust limits ////
 	float _lim_planar_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
 	float _lim_planar_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
-	//Planar thrust limits
+	//// CUSTOM Gains Planar thrust limits ////
 
 
 
-	float _xy_factor{0.5};// Analogous to the hover thrust multiplier
+	// float _xy_factor{0.5};// Analogous to the hover thrust multiplier
 
 	float _hover_thrust{}; ///< Thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 
