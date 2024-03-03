@@ -50,10 +50,22 @@ namespace ControlMath
 {
 
 void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att, const int planar_att_mode,
-		      vehicle_attitude_setpoint_s &att_sp, planar_attitude_status_s &planar_status)
+		      vehicle_attitude_setpoint_s &att_sp, planar_attitude_status_s &planar_status, bool planar_flag)
 {
 
 	switch (planar_att_mode) {
+
+	case 1:
+		if (planar_flag){
+		thrustToPlanarAttitude(thr_sp, yaw_sp, att,att_sp);
+		}
+		else
+		{
+		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
+		att_sp.thrust_body[2] = -thr_sp.length();
+		}
+		break;
+
 	case 3:
 
 		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);

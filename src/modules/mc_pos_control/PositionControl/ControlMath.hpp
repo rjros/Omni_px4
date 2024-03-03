@@ -67,7 +67,7 @@ namespace ControlMath
  */
 void thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
 		      const int vectoring_att_mode, vehicle_attitude_setpoint_s &att_sp,
-		      planar_attitude_status_s & planar_status);
+		      planar_attitude_status_s & planar_status, bool planar_flag);
 
 /**
  * Converts inertial thrust vector and yaw set-point to a planar attitude and body thrust vector for vehicles with horizontal thrusters

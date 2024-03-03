@@ -144,13 +144,13 @@ bool PositionControl::update(const float dt, const int vectoring_att_mode,bool p
 
 	bool distance_flag=false;
 	float error_xy=sqrt(pow((_pos_sp(0) - _pos(0)),2)+pow((_pos_sp(1) - _pos(1)),2));
-	distance_flag= (error_xy>=_planar_threshold)?true:false;
+	distance_flag= (error_xy>=_planar_threshold);
 	//Distance becomes nan during manual motion
 	bool moving_flag=false;
-	moving_flag=!PX4_ISFINITE(error_xy)?true:false;
+	moving_flag=!PX4_ISFINITE(error_xy);
 	//Conditions for planar motion
-	//Vectoring mode on or off only
-	planar_flag=(planar_flight||distance_flag||moving_flag)?true:false;
+	//Planar mode only during motion
+	planar_flag=(planar_flight||distance_flag||moving_flag);
 
 	//check value for the switch
 	switch (vectoring_att_mode) {
@@ -158,23 +158,26 @@ bool PositionControl::update(const float dt, const int vectoring_att_mode,bool p
 		if (planar_flag){
 		_planar_positionControl(dt,_yaw_sp);
 		_planar_velocityControl(dt,_yaw_sp);
-		// PX4_INFO("Planar");
+		PX4_INFO("Planar error %f ", double(error_xy));
 
 		}
 		else{
 		_positionControl();
 		_velocityControl(dt);
-		// PX4_INFO("tilted");
+		PX4_INFO("tilted %f ", double(error_xy));
 
 		}
 		break;//here
 	case 3:
 		_positionControl();
 		_velocityControl(dt);
+		PX4_INFO("tilted %f ", double(error_xy));
+
 		break;//here
 	default:
 		_positionControl();
 		_velocityControl(dt);
+
 
 		}
 	}
@@ -488,6 +491,6 @@ void PositionControl::getAttitudeSetpoint(const matrix::Quatf &att, const int ve
 					vehicle_attitude_setpoint_s &attitude_setpoint, planar_attitude_status_s &planar_status)
 					const
 {
-	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, att, vectoring_att_mode,attitude_setpoint, planar_status);
+	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, att, vectoring_att_mode,attitude_setpoint, planar_status,planar_flag);
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }
